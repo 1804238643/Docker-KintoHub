@@ -1,23 +1,86 @@
 {
-    "inbounds": [
-        {
-            "port": 3000,
-            "protocol": "vmess",
-            "settings": {
-                "clients": [
-                    {
-                        "id": "df8b16b1-f7ad-403e-ba6a-70dd677bbd31"
-                    }
-                ]
-            },
-            "streamSettings": {
-                "network":"ws"
-            }
+  "log": {
+    "loglevel": "none"
+  },
+  "inbounds": [
+    {
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
+      },
+      "port": 8001,
+      "listen":"127.0.0.1",
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "15bfd19e-e94e-423a-9d99-ff42190d3571",
+            "email": "vless@v2fly.org"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/baless"
         }
-    ],
-    "outbounds": [
-        {
-            "protocol": "freedom"
+      }
+    },
+    {
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls"]
+      },
+      "port": 8002,
+      "listen":"127.0.0.1",
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "15bfd19e-e94e-423a-9d99-ff42190d3571",
+            "email": "vmess@v2fly.org"
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/balance"
         }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {},
+      "tag": "direct"							// 路由对应tag
+    },
+    {
+      "protocol": "blackhole",
+      "settings": {},
+      "tag": "block"							// 路由对应tag
+    }
+  ],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",			// 当域名未匹配规则时，解析成IP再次匹配规则
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "block",
+        "domain": ["geosite:category-ads-all"]	// 禁止广告网站
+      },
+      {
+        "type": "field",
+        "outboundTag": "block",
+        "protocol": ["bittorrent"]				// 禁止BT协议
+      },
+      {
+        "type": "field",
+        "outboundTag": "block",
+        "ip": ["geoip:private"]					// 禁止局域网
+      }
     ]
+  }
 }

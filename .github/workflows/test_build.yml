@@ -1,0 +1,62 @@
+name: Test Reinstall V2ray
+
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: '0 12 * * TUE'
+
+jobs:
+  build_v2_core:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+
+    - name: Init Golang env
+      run: |
+        sudo apt-get update
+        wget https://golang.org/dl/go1.15.2.linux-amd64.tar.gz
+        sudo tar -xvf go1.15.2.linux-amd64.tar.gz
+        sudo mv go /usr/local
+        export GOROOT=/usr/local/go
+        export GOPATH=$HOME/go
+        export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+        source ~/.profile
+        go version
+
+    - name: pull and build v2ray core
+      run: |
+        git clone --progress https://github.com/v2fly/v2ray-core.git v2ray
+        # exit source file to make it have different signiture
+        fix_random=${RANDOM}
+        echo "func GetModuleName${RANDOM}(path string) (string, error, string) {
+
+              	gomodPath := filepath.Join(path, \"go.mod\")
+              	gomodBytes, err := ioutil.ReadFile(gomodPath)
+              	if err != nil {
+              		return \"\", err, \"\"
+              	}
+              	gomodContent := string(gomodBytes)
+              	moduleIdx := strings.Index(gomodContent, \"module\") + 6
+              	newLineIdx := strings.Index(gomodContent, \"n\")
+
+              	var moduleName string
+              	if moduleIdx >= 0 {
+              		if newLineIdx >= 0 {
+              			moduleName = strings.TrimSpace(gomodContent[moduleIdx:newLineIdx])
+              			moduleName = strings.TrimSuffix(moduleName, \"r\")
+              		} else {
+              			moduleName = strings.TrimSpace(gomodContent[moduleIdx:])
+              		}
+              	} else {
+              		return \"\", fmt.Errorf(\"can not get the value of \`module\` in path \`%s\`\", gomodPath), \"\"
+              	}
+                a_${fix_random} := GetGOPATH()
+              	return moduleName, nil, a_${fix_random}
+              }">>./v2ray/common/common.go
+        cd v2ray && \
+        bash ./release/user-package.sh nosource noconf codename=$(git describe --tags) buildname=docker-fly abpathtgz=/tmp/v2ray.tgz
+        sudo mkdir -p ./v2ray && \
+        sudo tar xvfz /tmp/v2ray.tgz -C ./v2ray
+        md5sum ./v2ray/v2ray
